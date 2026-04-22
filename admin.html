@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiPAS — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0c14; --surface: #111422; --surface2: #181c2e; --surface3: #1f2440;
+    --border: #252d4a; --accent: #4f7cff; --accent2: #7c4fff; --accent3: #ff4f7c;
+    --green: #2ecc8e; --yellow: #f5c842; --red: #ff4f5e;
+    --text: #e8eaf6; --text2: #8892b0; --text3: #3d4870;
+    --radius: 14px; --radius-sm: 8px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse 70% 50% at 15% 5%, rgba(79,124,255,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 70% at 85% 95%, rgba(124,79,255,0.05) 0%, transparent 60%);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 230px;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 18px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-logo-icon {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+  }
+  .sidebar-logo-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; }
+  .sidebar-logo-role { font-size: 9px; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
+
+  .sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 8px; }
+  .nav-label { font-size: 9px; color: var(--text3); letter-spacing: 1.2px; text-transform: uppercase; font-weight: 600; padding: 10px 10px 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: var(--radius-sm);
+    cursor: pointer; font-size: 13px; color: var(--text2);
+    transition: all .15s; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(79,124,255,.15); color: var(--accent); font-weight: 500; }
+  .nav-icon { width: 16px; text-align: center; font-size: 14px; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent3); color: #fff;
+    font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 20px;
+  }
+  .sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); }
+
+  /* MAIN */
+  .main { margin-left: 230px; padding: 24px 28px; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* TOPBAR */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+  .page-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; position: relative; overflow: hidden; transition: transform .2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--c, var(--accent)); }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; color: var(--c, var(--text)); line-height: 1; margin-bottom: 4px; }
+  .stat-lbl { font-size: 11px; color: var(--text2); }
+  .stat-ico { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 26px; opacity: .15; }
+
+  /* CARD */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+
+  /* TABLE */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 9px 12px; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .8px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 12px; font-size: 13px; border-bottom: 1px solid rgba(37,45,74,.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.015); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .b-pending { background: rgba(245,200,66,.15); color: var(--yellow); }
+  .b-approved { background: rgba(46,204,142,.15); color: var(--green); }
+  .b-rejected { background: rgba(255,79,94,.15); color: var(--red); }
+  .b-inprogress { background: rgba(79,124,255,.15); color: var(--accent); }
+  .b-done { background: rgba(46,204,142,.2); color: var(--green); }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500; }
+  .chip-aset { background: rgba(79,124,255,.15); color: var(--accent); }
+  .chip-akses { background: rgba(124,79,255,.15); color: var(--accent2); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 8px 16px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all .2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 4px 16px rgba(79,124,255,.25); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(79,124,255,.4); }
+  .btn-success { background: var(--green); color: #0d1f16; }
+  .btn-success:hover { filter: brightness(1.1); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { filter: brightness(1.1); }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 5px 11px; font-size: 11px; }
+  .btn-block { width: 100%; }
+  .act-group { display: flex; gap: 6px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+  .tab-btn { padding: 9px 16px; font-size: 12px; font-weight: 500; color: var(--text2); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .2s; font-family: 'DM Sans', sans-serif; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; animation: fadeIn .2s ease; }
+
+  /* FILTER */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-bar input, .filter-bar select {
+    background: var(--surface2); border: 1.5px solid var(--border); color: var(--text);
+    border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 12px;
+    padding: 7px 10px; outline: none; transition: border-color .2s;
+  }
+  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); }
+  .filter-bar input { flex: 1; min-width: 160px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.5); animation: fadeUp .2s ease; }
+  .modal-lg { max-width: 640px; }
+  .modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+  .modal-close { width: 28px; height: 28px; border-radius: 7px; border: 1.5px solid var(--border); background: transparent; color: var(--text2); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .modal-close:hover { border-color: var(--red); color: var(--red); }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; }
+  .form-control { width: 100%; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 9px 12px; outline: none; transition: border-color .2s; }
+  .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,124,255,.12); }
+  select.form-control option { background: var(--surface2); }
+  textarea.form-control { resize: vertical; min-height: 72px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* DETAIL */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .d-item label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 3px; }
+  .d-item span { font-size: 13px; }
+  .timeline { padding: 4px 0; }
+  .tl-item { display: flex; gap: 12px; padding-bottom: 18px; position: relative; }
+  .tl-item::before { content: ''; position: absolute; left: 17px; top: 30px; bottom: 0; width: 1px; background: var(--border); }
+  .tl-item:last-child::before { display: none; }
+  .tl-dot { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .tl-dot.pending { background: rgba(245,200,66,.2); }
+  .tl-dot.approved { background: rgba(46,204,142,.2); }
+  .tl-dot.rejected { background: rgba(255,79,94,.2); }
+  .tl-dot.inprogress { background: rgba(79,124,255,.2); }
+  .tl-body { flex: 1; }
+  .tl-title { font-size: 12px; font-weight: 500; }
+  .tl-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 48px 20px; color: var(--text3); }
+  .empty .ei { font-size: 40px; margin-bottom: 10px; }
+  .empty p { font-size: 13px; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 10px; }
+
+  /* PAGE */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn .2s ease; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 10px; padding: 10px 16px; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,.4); transform: translateX(120%); transition: transform .3s ease; max-width: 280px; }
+  #toast.show { transform: translateX(0); }
+  #toast.err { border-left-color: var(--red); }
+
+  /* REALTIME BADGE */
+  .rt-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--green); background: rgba(46,204,142,.1); border: 1px solid rgba(46,204,142,.2); border-radius: 20px; padding: 3px 10px; }
+  .rt-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">🛡️</div>
+    <div>
+      <div class="sidebar-logo-name">SiPAS</div>
+      <div class="sidebar-logo-role">Admin Portal</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Menu</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="navTo('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+    <div class="nav-item" id="nav-approval" onclick="navTo('approval')">
+      <span class="nav-icon">✅</span> Approval Center
+      <span class="nav-badge" id="approvalBadge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" id="nav-semua" onclick="navTo('semua')"><span class="nav-icon">📋</span> Semua Pengajuan</div>
+    <div class="nav-item" id="nav-ajukan" onclick="navTo('ajukan')"><span class="nav-icon">➕</span> Buat Pengajuan</div>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="index.html" class="nav-item" style="text-decoration:none"><span class="nav-icon">🚪</span> Kembali</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="topbar">
+      <div><div class="page-title">Dashboard Admin</div><div class="page-sub">Monitoring semua pengajuan aset & akses</div></div>
+      <div class="rt-badge"><div class="rt-dot"></div> Realtime</div>
+    </div>
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card" style="--c:var(--accent)"><div class="stat-val" id="s-total">—</div><div class="stat-lbl">Total Pengajuan</div><div class="stat-ico">📋</div></div>
+      <div class="stat-card" style="--c:var(--yellow)"><div class="stat-val" id="s-pending">—</div><div class="stat-lbl">Menunggu Approval</div><div class="stat-ico">⏳</div></div>
+      <div class="stat-card" style="--c:var(--green)"><div class="stat-val" id="s-done">—</div><div class="stat-lbl">Selesai</div><div class="stat-ico">✅</div></div>
+      <div class="stat-card" style="--c:var(--red)"><div class="stat-val" id="s-rejected">—</div><div class="stat-lbl">Ditolak</div><div class="stat-ico">❌</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Pengajuan Terbaru <button class="btn btn-ghost btn-sm" onclick="navTo('semua')">Lihat Semua →</button></div>
+      <div class="tbl-wrap" id="recentTbl"><div class="loading"><div class="spinner"></div><br>Memuat data...</div></div>
+    </div>
+  </div>
+
+  <!-- APPROVAL -->
+  <div class="page" id="page-approval">
+    <div class="topbar">
+      <div><div class="page-title">Approval Center</div><div class="page-sub">Tinjau dan proses pengajuan dari user</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'tab-pending')">⏳ Menunggu</button>
+      <button class="tab-btn" onclick="switchTab(this,'tab-approved')">✅ Disetujui</button>
+      <button class="tab-btn" onclick="switchTab(this,'tab-rejected')">❌ Ditolak</button>
+    </div>
+    <div class="tab-pane active" id="tab-pending"><div class="card"><div class="tbl-wrap" id="pendingTbl"></div></div></div>
+    <div class="tab-pane" id="tab-approved"><div class="card"><div class="tbl-wrap" id="approvedTbl"></div></div></div>
+    <div class="tab-pane" id="tab-rejected"><div class="card"><div class="tbl-wrap" id="rejectedTbl"></div></div></div>
+  </div>
+
+  <!-- SEMUA PENGAJUAN -->
+  <div class="page" id="page-semua">
+    <div class="topbar">
+      <div><div class="page-title">Semua Pengajuan</div><div class="page-sub">Seluruh data pengajuan dalam sistem</div></div>
+    </div>
+    <div class="card">
+      <div class="filter-bar">
+        <input type="text" id="searchAll" placeholder="🔍 Cari ID, nama, jenis..." oninput="renderAll()">
+        <select id="filterStatus" onchange="renderAll()">
+          <option value="">Semua Status</option>
+          <option>Pending</option><option>Disetujui</option><option>Ditolak</option><option>Diproses</option><option>Selesai</option>
+        </select>
+        <select id="filterType" onchange="renderAll()">
+          <option value="">Semua Tipe</option>
+          <option>Aset</option><option>Akses</option>
+        </select>
+      </div>
+      <div class="tbl-wrap" id="allTbl"></div>
+    </div>
+  </div>
+
+  <!-- BUAT PENGAJUAN -->
+  <div class="page" id="page-ajukan">
+    <div class="topbar">
+      <div><div class="page-title">Buat Pengajuan</div><div class="page-sub">Buat pengajuan atas nama karyawan</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:860px">
+      <!-- Form Aset -->
+      <div class="card">
+        <div class="card-title">📦 Pengajuan Aset</div>
+        <div class="form-group"><label class="form-label">Nama Pengaju *</label><input id="a-pengaju" class="form-control" placeholder="Nama karyawan"></div>
+        <div class="form-group"><label class="form-label">Departemen</label>
+          <select id="a-dept" class="form-control"><option>IT</option><option>Finance</option><option>HR</option><option>Marketing</option><option>Operations</option><option>Sales</option></select></div>
+        <div class="form-group"><label class="form-label">Jenis Aset *</label>
+          <select id="a-jenis" class="form-control">
+            <option value="">-- Pilih --</option>
+            <option>Laptop / Komputer</option><option>Monitor</option><option>Mouse & Keyboard</option>
+            <option>Printer / Scanner</option><option>Headset</option><option>Kendaraan Dinas</option>
+            <option>Proyektor</option><option>Telepon / HP</option><option>Lainnya</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Prioritas</label>
+          <select id="a-prioritas" class="form-control"><option>Normal</option><option>Tinggi</option><option>Mendesak</option></select></div>
+        <div class="form-group"><label class="form-label">Spesifikasi</label><textarea id="a-spec" class="form-control" placeholder="Spesifikasi yang dibutuhkan..."></textarea></div>
+        <div class="form-group"><label class="form-label">Alasan *</label><textarea id="a-alasan" class="form-control" placeholder="Justifikasi kebutuhan..."></textarea></div>
+        <button class="btn btn-primary btn-block" onclick="submitAset()">Kirim Pengajuan Aset</button>
+      </div>
+      <!-- Form Akses -->
+      <div class="card">
+        <div class="card-title">🔐 Pengajuan Akses</div>
+        <div class="form-group"><label class="form-label">Nama Pengaju *</label><input id="k-pengaju" class="form-control" placeholder="Nama karyawan"></div>
+        <div class="form-group"><label class="form-label">Departemen</label>
+          <select id="k-dept" class="form-control"><option>IT</option><option>Finance</option><option>HR</option><option>Marketing</option><option>Operations</option><option>Sales</option></select></div>
+        <div class="form-group"><label class="form-label">Sistem / Aplikasi *</label>
+          <select id="k-jenis" class="form-control">
+            <option value="">-- Pilih --</option>
+            <option>ERP / SAP</option><option>CRM Salesforce</option><option>Sistem Absensi</option>
+            <option>Database Server</option><option>Git / Source Control</option>
+            <option>Cloud Storage</option><option>Email Corporate</option><option>VPN</option>
+            <option>Admin Panel</option><option>Lainnya</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Level Akses</label>
+          <select id="k-level" class="form-control"><option>Read Only</option><option>Read & Write</option><option>Full Access</option><option>Admin</option></select></div>
+        <div class="form-group"><label class="form-label">Durasi</label>
+          <select id="k-durasi" class="form-control"><option>Permanen</option><option>1 Bulan</option><option>3 Bulan</option><option>6 Bulan</option><option>1 Tahun</option></select></div>
+        <div class="form-group"><label class="form-label">Alasan *</label><textarea id="k-alasan" class="form-control" placeholder="Justifikasi kebutuhan..."></textarea></div>
+        <button class="btn btn-primary btn-block" onclick="submitAkses()">Kirim Pengajuan Akses</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="modalDetail">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <div class="modal-title" id="detailTitle">Detail Pengajuan</div>
+      <button class="modal-close" onclick="closeModal('modalDetail')">✕</button>
+    </div>
+    <div id="detailContent"></div>
+    <div id="detailActions" style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"></div>
+  </div>
+</div>
+
+<!-- MODAL REJECT -->
+<div class="modal-overlay" id="modalReject">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hdr"><div class="modal-title">❌ Tolak Pengajuan</div><button class="modal-close" onclick="closeModal('modalReject')">✕</button></div>
+    <div class="form-group"><label class="form-label">Alasan Penolakan *</label><textarea id="rejectReason" class="form-control" placeholder="Tulis alasan penolakan..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalReject')">Batal</button>
+      <button class="btn btn-danger" onclick="confirmReject()">Konfirmasi Tolak</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DONE -->
+<div class="modal-overlay" id="modalDone">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hdr"><div class="modal-title">✅ Tandai Selesai</div><button class="modal-close" onclick="closeModal('modalDone')">✕</button></div>
+    <div class="form-group"><label class="form-label">Catatan Penyelesaian</label><textarea id="doneNote" class="form-control" placeholder="Catatan opsional..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalDone')">Batal</button>
+      <button class="btn btn-success" onclick="confirmDone()">Selesaikan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCkekmRzcYhnSnd64i7uhmpatOFmAinAzc",
+  authDomain: "sipas-db.firebaseapp.com",
+  databaseURL: "https://sipas-db-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "sipas-db",
+  storageBucket: "sipas-db.firebasestorage.app",
+  messagingSenderId: "19462583705",
+  appId: "1:19462583705:web:26b3c8649701eba7f78f08",
+  measurementId: "G-PZ736619S4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dbRef = ref(db, 'pengajuan');
+
+let allData = {};
+let pendingRejectId = null;
+let pendingDoneId = null;
+
+// ── REALTIME LISTENER ──
+onValue(dbRef, (snapshot) => {
+  allData = snapshot.val() || {};
+  updateStats();
+  updateBadge();
+  const activePage = document.querySelector('.page.active')?.id;
+  if (activePage === 'page-dashboard') renderRecent();
+  if (activePage === 'page-approval') renderApproval();
+  if (activePage === 'page-semua') renderAll();
+});
+
+function updateStats() {
+  const arr = Object.values(allData);
+  document.getElementById('s-total').textContent = arr.length;
+  document.getElementById('s-pending').textContent = arr.filter(p=>p.status==='Pending').length;
+  document.getElementById('s-done').textContent = arr.filter(p=>p.status==='Selesai').length;
+  document.getElementById('s-rejected').textContent = arr.filter(p=>p.status==='Ditolak').length;
+}
+
+function updateBadge() {
+  const count = Object.values(allData).filter(p=>p.status==='Pending').length;
+  const b = document.getElementById('approvalBadge');
+  b.textContent = count;
+  b.style.display = count > 0 ? 'inline' : 'none';
+}
+
+// ── RENDER ──
+function renderRecent() {
+  const arr = Object.entries(allData).map(([k,v])=>({...v,key:k}))
+    .sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,8);
+  document.getElementById('recentTbl').innerHTML = arr.length ? buildTable(arr, true) : empty('Belum ada pengajuan','📭');
+}
+
+function renderApproval() {
+  const arr = Object.entries(allData).map(([k,v])=>({...v,key:k})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  document.getElementById('pendingTbl').innerHTML = buildApprovalTable(arr.filter(p=>p.status==='Pending'));
+  document.getElementById('approvedTbl').innerHTML = buildTable(arr.filter(p=>['Disetujui','Diproses','Selesai'].includes(p.status)), false);
+  document.getElementById('rejectedTbl').innerHTML = buildTable(arr.filter(p=>p.status==='Ditolak'), false);
+}
+
+window.renderAll = function() {
+  const search = (document.getElementById('searchAll')?.value||'').toLowerCase();
+  const fStatus = document.getElementById('filterStatus')?.value||'';
+  const fType = document.getElementById('filterType')?.value||'';
+  let arr = Object.entries(allData).map(([k,v])=>({...v,key:k}))
+    .filter(p => {
+      const ms = !search || (p.id||'').toLowerCase().includes(search) || (p.jenis||'').toLowerCase().includes(search) || (p.pengaju||'').toLowerCase().includes(search);
+      const mst = !fStatus || p.status===fStatus;
+      const mt = !fType || p.tipe===fType;
+      return ms && mst && mt;
+    }).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  document.getElementById('allTbl').innerHTML = arr.length ? buildTable(arr, false) : empty('Tidak ada data','📊');
+};
+
+function buildApprovalTable(arr) {
+  if (!arr.length) return empty('Tidak ada pengajuan menunggu','✅');
+  return `<table><thead><tr><th>ID</th><th>Tipe</th><th>Jenis</th><th>Pengaju</th><th>Dept</th><th>Prioritas</th><th>Tanggal</th><th>Aksi</th></tr></thead><tbody>
+  ${arr.map(p=>`<tr>
+    <td><b>${p.id||'-'}</b></td>
+    <td>${tipeBadge(p.tipe)}</td>
+    <td>${p.jenis||'-'}</td>
+    <td>${p.pengaju||'-'}</td>
+    <td><span class="chip">${p.dept||'-'}</span></td>
+    <td>${prioLabel(p.prioritas)}</td>
+    <td>${fmtDate(p.tanggal)}</td>
+    <td><div class="act-group">
+      <button class="btn btn-sm btn-success" onclick="approveItem('${p.key}')">✓ Setujui</button>
+      <button class="btn btn-sm btn-danger" onclick="openReject('${p.key}')">✕ Tolak</button>
+      <button class="btn btn-sm btn-ghost" onclick="openDetail('${p.key}')">👁</button>
+    </div></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+function buildTable(arr, showAct) {
+  if (!arr.length) return empty('Tidak ada data','📋');
+  return `<table><thead><tr><th>ID</th><th>Tipe</th><th>Jenis</th><th>Pengaju</th><th>Status</th><th>Tanggal</th>${showAct?'<th>Aksi</th>':''}</tr></thead><tbody>
+  ${arr.map(p=>`<tr>
+    <td><b>${p.id||'-'}</b></td>
+    <td>${tipeBadge(p.tipe)}</td>
+    <td>${p.jenis||'-'}</td>
+    <td>${p.pengaju||'-'}</td>
+    <td>${statusBadge(p.status)}</td>
+    <td>${fmtDate(p.tanggal)}</td>
+    ${showAct?`<td><button class="btn btn-ghost btn-sm" onclick="openDetail('${p.key}')">Detail →</button></td>`:'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(\''+p.key+'\')">Detail →</button></td>'}
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── ACTIONS ──
+window.approveItem = async function(key) {
+  const p = allData[key];
+  const newRiwayat = [...(p.riwayat||[]), { act:'Disetujui', by:'Admin', tgl:today(), note:'Disetujui oleh Admin.' }];
+  await update(ref(db, `pengajuan/${key}`), { status:'Disetujui', riwayat: newRiwayat });
+  toast('✅ Pengajuan disetujui');
+};
+
+window.openReject = function(key) {
+  pendingRejectId = key;
+  document.getElementById('rejectReason').value = '';
+  openModal('modalReject');
+};
+
+window.confirmReject = async function() {
+  const reason = document.getElementById('rejectReason').value.trim();
+  if (!reason) { toast('Isi alasan penolakan', true); return; }
+  const p = allData[pendingRejectId];
+  const newRiwayat = [...(p.riwayat||[]), { act:'Ditolak', by:'Admin', tgl:today(), note: reason }];
+  await update(ref(db, `pengajuan/${pendingRejectId}`), { status:'Ditolak', riwayat: newRiwayat });
+  closeModal('modalReject');
+  toast('❌ Pengajuan ditolak');
+};
+
+window.openDone = function(key) {
+  pendingDoneId = key;
+  document.getElementById('doneNote').value = '';
+  openModal('modalDone');
+};
+
+window.confirmDone = async function() {
+  const note = document.getElementById('doneNote').value.trim() || 'Pengajuan telah selesai dieksekusi.';
+  const p = allData[pendingDoneId];
+  const newRiwayat = [...(p.riwayat||[]), { act:'Selesai', by:'Admin', tgl:today(), note }];
+  await update(ref(db, `pengajuan/${pendingDoneId}`), { status:'Selesai', riwayat: newRiwayat });
+  closeModal('modalDone');
+  toast('🎉 Pengajuan selesai!');
+};
+
+window.markProcess = async function(key) {
+  const p = allData[key];
+  const newRiwayat = [...(p.riwayat||[]), { act:'Diproses', by:'Admin', tgl:today(), note:'Sedang dalam proses eksekusi.' }];
+  await update(ref(db, `pengajuan/${key}`), { status:'Diproses', riwayat: newRiwayat });
+  toast('⚙️ Status diperbarui: Diproses');
+};
+
+// ── SUBMIT ──
+window.submitAset = async function() {
+  const pengaju = document.getElementById('a-pengaju').value.trim();
+  const jenis = document.getElementById('a-jenis').value;
+  const alasan = document.getElementById('a-alasan').value.trim();
+  if (!pengaju||!jenis||!alasan) { toast('Lengkapi field yang wajib diisi', true); return; }
+  const id = genId();
+  await push(dbRef, {
+    id, tipe:'Aset', jenis, pengaju, alasan,
+    dept: document.getElementById('a-dept').value,
+    prioritas: document.getElementById('a-prioritas').value,
+    spesifikasi: document.getElementById('a-spec').value,
+    tanggal: today(), status:'Pending', ts: Date.now(),
+    riwayat: [{ act:'Diajukan', by: pengaju, tgl: today(), note:'' }]
+  });
+  ['a-pengaju','a-spec','a-alasan'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('a-jenis').value='';
+  toast(`✅ Pengajuan aset ${id} berhasil dikirim!`);
+};
+
+window.submitAkses = async function() {
+  const pengaju = document.getElementById('k-pengaju').value.trim();
+  const jenis = document.getElementById('k-jenis').value;
+  const alasan = document.getElementById('k-alasan').value.trim();
+  if (!pengaju||!jenis||!alasan) { toast('Lengkapi field yang wajib diisi', true); return; }
+  const id = genId();
+  await push(dbRef, {
+    id, tipe:'Akses', jenis, pengaju, alasan,
+    dept: document.getElementById('k-dept').value,
+    level: document.getElementById('k-level').value,
+    durasi: document.getElementById('k-durasi').value,
+    tanggal: today(), status:'Pending', ts: Date.now(),
+    riwayat: [{ act:'Diajukan', by: pengaju, tgl: today(), note:'' }]
+  });
+  ['k-pengaju','k-alasan'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('k-jenis').value='';
+  toast(`✅ Pengajuan akses ${id} berhasil dikirim!`);
+};
+
+// ── DETAIL ──
+window.openDetail = function(key) {
+  const p = allData[key];
+  if (!p) return;
+  document.getElementById('detailTitle').textContent = `${p.tipe==='Aset'?'📦':'🔐'} Detail — ${p.id}`;
+  const fields = p.tipe==='Aset'
+    ? [{l:'ID',v:p.id},{l:'Status',v:statusBadge(p.status)},{l:'Jenis Aset',v:p.jenis},{l:'Prioritas',v:prioLabel(p.prioritas)},{l:'Pengaju',v:p.pengaju},{l:'Departemen',v:p.dept},{l:'Tanggal',v:fmtDate(p.tanggal)},{l:'Spesifikasi',v:p.spesifikasi||'-'}]
+    : [{l:'ID',v:p.id},{l:'Status',v:statusBadge(p.status)},{l:'Aplikasi',v:p.jenis},{l:'Level Akses',v:p.level||'-'},{l:'Pengaju',v:p.pengaju},{l:'Departemen',v:p.dept},{l:'Tanggal',v:fmtDate(p.tanggal)},{l:'Durasi',v:p.durasi||'-'}];
+
+  const icons = {Diajukan:'📝',Disetujui:'✅',Ditolak:'❌',Diproses:'⚙️',Selesai:'🎉'};
+  const cls = {Diajukan:'pending',Disetujui:'approved',Ditolak:'rejected',Diproses:'inprogress',Selesai:'approved'};
+  const timeline = (p.riwayat||[]).map(r=>`<div class="tl-item"><div class="tl-dot ${cls[r.act]||'pending'}">${icons[r.act]||'•'}</div><div class="tl-body"><div class="tl-title">${r.act} <span style="color:var(--text2);font-weight:400">oleh ${r.by}</span></div><div class="tl-meta">${r.tgl}${r.note?' · '+r.note:''}</div></div></div>`).join('');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-grid">${fields.map(f=>`<div class="d-item"><label>${f.l}</label><span>${f.v}</span></div>`).join('')}</div>
+    <div class="d-item" style="margin-bottom:16px"><label>Alasan</label><div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:13px;color:var(--text2);margin-top:4px">${p.alasan||'-'}</div></div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;font-weight:600">Riwayat</div>
+    <div class="timeline">${timeline}</div>`;
+
+  // Action buttons in detail
+  const acts = document.getElementById('detailActions');
+  acts.innerHTML = '';
+  if (p.status==='Pending') {
+    acts.innerHTML = `<button class="btn btn-success btn-sm" onclick="approveItem('${key}');closeModal('modalDetail')">✓ Setujui</button><button class="btn btn-danger btn-sm" onclick="closeModal('modalDetail');openReject('${key}')">✕ Tolak</button>`;
+  } else if (p.status==='Disetujui') {
+    acts.innerHTML = `<button class="btn btn-primary btn-sm" onclick="markProcess('${key}');closeModal('modalDetail')">⚙️ Proses</button><button class="btn btn-success btn-sm" onclick="closeModal('modalDetail');openDone('${key}')">✓ Selesai</button>`;
+  } else if (p.status==='Diproses') {
+    acts.innerHTML = `<button class="btn btn-success btn-sm" onclick="closeModal('modalDetail');openDone('${key}')">✓ Tandai Selesai</button>`;
+  }
+  openModal('modalDetail');
+};
+
+// ── HELPERS ──
+function genId() { return 'PGJ-' + Date.now().toString(36).toUpperCase(); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) { return d || '-'; }
+function statusBadge(s) {
+  const m = {Pending:'b-pending',Disetujui:'b-approved',Ditolak:'b-rejected',Diproses:'b-inprogress',Selesai:'b-done'};
+  return `<span class="badge ${m[s]||'b-pending'}">${s}</span>`;
+}
+function tipeBadge(t) { return `<span class="chip chip-${t==='Aset'?'aset':'akses'}">${t}</span>`; }
+function prioLabel(p) {
+  const c={Normal:'var(--text2)',Tinggi:'var(--yellow)',Mendesak:'var(--red)'};
+  return `<span style="color:${c[p]||'var(--text2)'};font-size:11px;font-weight:600">${p||'Normal'}</span>`;
+}
+function empty(msg,icon) { return `<div class="empty"><div class="ei">${icon}</div><p>${msg}</p></div>`; }
+
+let toastTimer;
+function toast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.className=''; }, 3000);
+}
+window.toast = toast;
+
+// ── NAV ──
+window.navTo = function(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page)?.classList.add('active');
+  if (page==='approval') renderApproval();
+  if (page==='semua') renderAll();
+  if (page==='dashboard') renderRecent();
+};
+
+window.switchTab = function(btn, paneId) {
+  btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.page').querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(paneId).classList.add('active');
+};
+
+window.openModal = function(id) { document.getElementById(id).classList.add('open'); };
+window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
